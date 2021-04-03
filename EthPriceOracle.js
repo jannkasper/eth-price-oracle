@@ -24,7 +24,7 @@ async function filterEvents (oracleContract, web3js) {
 
     oracleContract.events.SetLatestEthPriceEvent(async (err, event) => {
         if (err) console.error('Error on event', err)
-
+        // Do something
     })
 }
 
@@ -41,6 +41,17 @@ async function processQueue (oracleContract, ownerAddress) {
         await processRequest(oracleContract, ownerAddress, req.id, req.callerAddress)
         processedRequests++
     }
+}
+
+async function retrieveLatestEthPrice () {
+    const resp = await axios({
+        url: 'https://api.binance.com/api/v3/ticker/price',
+        params: {
+            symbol: 'ETHUSDT'
+        },
+        method: 'get'
+    })
+    return resp.data.price
 }
 
 async function processRequest (oracleContract, ownerAddress, id, callerAddress) {
@@ -69,7 +80,7 @@ async function setLatestEthPrice (oracleContract, callerAddress, ownerAddress, e
         await oracleContract.methods.setLatestEthPrice(ethPriceInt.toString(), callerAddress, idInt.toString()).send({ from: ownerAddress })
     } catch (error) {
         console.log('Error encountered while calling setLatestEthPrice.')
-
+        // Do some error handling
     }
 }
 
@@ -90,13 +101,4 @@ async function init () {
     setInterval(async () => {
         await processQueue(oracleContract, ownerAddress)
     }, SLEEP_INTERVAL)
-
-    const networkId = await web3js.eth.net.getId()
-    const oracleAddress =  OracleJSON.networks[networkId].address
-    await callerContract.methods.setOracleInstanceAddress(oracleAddress).send({ from: ownerAddress })
-    setInterval( async () => {
-        await callerContract.methods.updateEthPrice().send({ from: ownerAddress })
-    }, SLEEP_INTERVAL);
 })()
-
-
